@@ -21,8 +21,11 @@ h2{font-size:18px;margin-bottom:5px}.desc{font-size:13px;color:var(--muted);line
 .account-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:end}
 .account-form label{display:block;color:#c8cbd1;font-size:13px;margin-bottom:6px}
 .account-form input,.account-form select{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--border);background:#101217;color:var(--text);font:inherit}
-.account-form button{padding:12px 16px;border:0;border-radius:10px;background:var(--accent);color:#101812;font-weight:750;cursor:pointer}
-#accountStatus{min-height:20px;margin-top:12px;font-size:13px;color:var(--muted)}
+.account-form button,.admin-action{padding:12px 16px;border:0;border-radius:10px;background:var(--accent);color:#101812;font-weight:750;cursor:pointer}
+#accountStatus,#bugAdminStatus{min-height:20px;margin-top:12px;font-size:13px;color:var(--muted)}
+.admin-nav{display:none;gap:8px;align-items:center}.admin-nav button{border:1px solid var(--border);background:var(--surface);color:var(--text);padding:8px 12px;border-radius:9px;cursor:pointer}
+.admin-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}.admin-tabs button{border:1px solid var(--border);background:#101217;color:var(--text);padding:10px 14px;border-radius:10px;cursor:pointer}.admin-tabs button.active{background:var(--accent);color:#101812;border-color:var(--accent);font-weight:750}
+.admin-subpanel{display:none}.admin-subpanel.active{display:block}.bug-card,.user-card{border:1px solid var(--border);border-radius:14px;padding:16px;margin:12px 0;background:#101217}.bug-card h3{margin:0 0 8px}.bug-card p,.user-card p{color:#c8cbd1;line-height:1.5}.bug-card textarea{width:100%;min-height:90px;padding:11px;border-radius:10px;border:1px solid var(--border);background:#0d0f12;color:var(--text);font:inherit;margin:8px 0}.bug-card select{padding:9px;border-radius:9px;border:1px solid var(--border);background:#0d0f12;color:var(--text)}.admin-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px}.admin-note{color:var(--muted);font-size:13px}
 footer{padding:22px;text-align:center;color:#656b75;font-size:12px;border-top:1px solid var(--border)}
 @media(max-width:600px){header{padding:18px 6%}main{padding-top:34px}.card{padding:19px}}
 
@@ -41,7 +44,7 @@ footer{padding:22px;text-align:center;color:#656b75;font-size:12px;border-top:1p
 #portalLoginStatus{min-height:20px;margin-top:12px;font-size:13px;color:#ff9292;text-align:center}
 #portalLogout{display:none;width:auto;margin-left:12px;border:1px solid var(--border);background:var(--surface);color:var(--text);padding:8px 12px;border-radius:9px;cursor:pointer}
 </style></head><body>
-<header><div class="logo">koale<span>.</span></div><div style="display:flex;align-items:center"><div class="status" id="topstatus">Zaloguj się</div><button id="portalLogout" type="button">Wyloguj</button></div></header>
+<header><div class="logo">koale<span>.</span></div><div style="display:flex;align-items:center;gap:8px"><div class="status" id="topstatus">Zaloguj się</div><div class="admin-nav" id="adminNav"><button id="openAdminPanel" type="button">Panel Admina</button></div><button id="portalLogout" type="button">Wyloguj</button></div></header>
 <section id="portalLogin">
   <div class="login-card">
     <div class="login-icon">🐨</div>
@@ -65,15 +68,23 @@ footer{padding:22px;text-align:center;color:#656b75;font-size:12px;border-top:1p
 <article class="card"><div class="cardhead"><div class="cardicon">📚</div><div><h2>Koale-Zadania</h2><p class="desc">Zadania, odpowiedzi, czat i plan lekcji.</p></div></div><button class="open" id="openTasks">Otwórz Koale-Zadania <span>→</span></button></article>
 <article class="card"><div class="cardhead"><div class="cardicon">🎮</div><div><h2>Koale Gry</h2><p class="desc">Gry edukacyjne i zręcznościowe w stylu Koale.</p></div></div><button class="open" id="openGames">Otwórz Koale Gry <span>→</span></button></article>
 </section>
-<section class="admin-panel" id="accountAdmin" aria-label="Dodawanie kont">
-  <h2>Dodaj konto</h2><p>Ta opcja jest dostępna tylko dla SuperAdministratora. Hasło musi mieć co najmniej 6 znaków.</p>
-  <form class="account-form" id="accountForm">
-    <div><label for="newAccountName">Nazwa użytkownika</label><input id="newAccountName" required autocomplete="off"></div>
-    <div><label for="newAccountPassword">Hasło</label><input id="newAccountPassword" type="password" minlength="6" required autocomplete="new-password"></div>
-    <div><label for="newAccountClass">Klasa</label><select id="newAccountClass"><option value="4">IV</option><option value="5a">Va</option><option value="5b">Vb</option><option value="6" selected>VI</option><option value="7">VII</option><option value="8">VIII</option></select></div>
-    <div><label for="newAccountRole">Rola</label><select id="newAccountRole"><option value="student">Uczeń</option><option value="nauczyciel">Nauczyciel</option><option value="moderator">Moderator</option><option value="admin">Administrator</option><option value="sadmin">SuperAdministrator</option></select></div>
-    <button id="createAccountButton" type="submit">Utwórz konto</button>
-  </form><div id="accountStatus" role="status"></div>
+<section class="admin-panel" id="adminPanel" aria-label="Panel Admina">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><h2>Panel Admina</h2><p>Zarządzaj kontami i zgłoszeniami błędów.</p></div><button class="admin-action" id="closeAdminPanel" type="button">Zamknij panel</button></div>
+  <div class="admin-tabs"><button type="button" class="active" data-admin-tab="users">Konta</button><button type="button" data-admin-tab="bugs">Zgłoszenia błędów</button></div>
+  <section class="admin-subpanel active" id="adminUsersPanel">
+    <div id="accountCreateArea" style="display:none"><h3>Dodaj konto</h3><p class="admin-note">Hasło musi mieć co najmniej 6 znaków.</p>
+      <form class="account-form" id="accountForm">
+        <div><label for="newAccountName">Nazwa użytkownika</label><input id="newAccountName" required autocomplete="off"></div>
+        <div><label for="newAccountPassword">Hasło</label><input id="newAccountPassword" type="password" minlength="6" required autocomplete="new-password"></div>
+        <div><label for="newAccountClass">Klasa</label><select id="newAccountClass"><option value="4">IV</option><option value="5a">Va</option><option value="5b">Vb</option><option value="6" selected>VI</option><option value="7">VII</option><option value="8">VIII</option></select></div>
+        <div><label for="newAccountRole">Rola</label><select id="newAccountRole"><option value="student">Uczeń</option><option value="nauczyciel">Nauczyciel</option><option value="moderator">Moderator</option><option value="admin">Administrator</option><option value="sadmin">SuperAdministrator</option></select></div>
+        <button id="createAccountButton" type="submit">Utwórz konto</button>
+      </form><div id="accountStatus" role="status"></div>
+    </div>
+    <p id="accountAdminNote" class="admin-note" style="display:none">Tworzenie kont jest dostępne tylko dla SuperAdministratora.</p>
+    <h3 style="margin-top:18px">Użytkownicy</h3><div id="adminUsersList" class="admin-note">Kliknij, aby pobrać listę.</div>
+  </section>
+  <section class="admin-subpanel" id="adminBugsPanel"><div id="bugAdminStatus" role="status"></div><div id="bugAdminList" class="admin-note">Kliknij zakładkę, aby pobrać zgłoszenia.</div></section>
 </section></main>
 <footer id="footer" style="display:none">© 2026 Koale</footer>
 
@@ -119,7 +130,11 @@ function portalShowHome() {
   document.getElementById("footer").style.display = "block";
   document.getElementById("portalLogout").style.display = "inline-block";
   document.getElementById("topstatus").textContent = "Witaj, " + portalAuth.user.name;
-  document.getElementById("accountAdmin").style.display = portalAuth.user.role === "sadmin" ? "block" : "none";
+  const isAdmin = ["sadmin", "admin"].includes(portalAuth.user.role);
+  document.getElementById("adminNav").style.display = isAdmin ? "flex" : "none";
+  document.getElementById("accountCreateArea").style.display = portalAuth.user.role === "sadmin" ? "block" : "none";
+  document.getElementById("accountAdminNote").style.display = portalAuth.user.role === "sadmin" ? "none" : "block";
+  document.getElementById("adminPanel").style.display = "none";
   history.replaceState(null, "", location.pathname + location.hash);
 }
 function portalShowLogin(message="") {
@@ -128,6 +143,8 @@ function portalShowLogin(message="") {
   document.getElementById("footer").style.display = "none";
   document.querySelector("header").style.display = "flex";
   document.getElementById("portalLogout").style.display = "none";
+  document.getElementById("adminNav").style.display = "none";
+  document.getElementById("adminPanel").style.display = "none";
   document.getElementById("topstatus").textContent = "Zaloguj się";
   document.getElementById("portalLoginStatus").textContent = message;
 }
@@ -185,6 +202,7 @@ document.getElementById("accountForm").addEventListener("submit", async event =>
     status.style.color = "#a4e2b2";
     status.textContent = `Utworzono konto: ${result.user.name}, kl. ${result.user.class}.`;
     document.getElementById("accountForm").reset();
+    loadAdminUsers();
   } catch (error) {
     status.style.color = "#ff9292";
     status.textContent = error.message || "Błąd podczas tworzenia konta.";
@@ -192,13 +210,47 @@ document.getElementById("accountForm").addEventListener("submit", async event =>
     button.disabled = false;
   }
 });
+function escapeAdminText(value) { return String(value == null ? "" : value).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch])); }
+async function adminPost(payload) {
+  const response = await fetch(PORTAL_SHEETS_API, {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...payload,token:portalAuth?.token||"",refreshToken:portalAuth?.refreshToken||""})});
+  const result = await response.json();
+  if (!response.ok || !result.success) throw new Error(result?.error || "Nie udało się zapisać zmian.");
+  return result;
+}
+async function loadAdminUsers() {
+  const list = document.getElementById("adminUsersList"); list.textContent = "Pobieram konta…";
+  try {
+    const result = await portalJsonp({action:"adminUsers",token:portalAuth?.token||"",refreshToken:portalAuth?.refreshToken||""});
+    if (!result?.success) throw new Error(result?.error || "Nie udało się pobrać kont.");
+    const users = result.users || [];
+    list.innerHTML = users.length ? users.map(user => `<article class="user-card"><strong>${escapeAdminText(user.name)}</strong><p>Klasa: ${escapeAdminText(user.class)} · Rola: ${escapeAdminText(user.role)}</p></article>`).join("") : "Brak kont.";
+  } catch (error) { list.textContent = error.message || "Błąd pobierania kont."; }
+}
+function parseAdminBug(row) {
+  let meta = {}; try { meta = JSON.parse(String(row.content || "{}")); } catch { meta = {description:String(row.content || "")}; }
+  return {id:String(row.id||""),title:String(row.title||"Bez tytułu"),category:String(row.subject||meta.category||"inne"),description:String(meta.description||row.content||""),user:String(row.user||meta.user||"Nieznany użytkownik"),role:String(row.role||meta.role||""),canContact:row.canContact!==false&&meta.canContact!==false,status:String(row.status||meta.status||"nowe"),reply:String(row.reply||meta.reply||""),date:String(row.date||"")};
+}
+async function loadAdminBugs() {
+  const list = document.getElementById("bugAdminList"); list.textContent = "Pobieram zgłoszenia…";
+  try {
+    const result = await portalJsonp({action:"bootstrap",token:portalAuth?.token||"",refreshToken:portalAuth?.refreshToken||""});
+    if (!result?.success) throw new Error(result?.error || "Nie udało się pobrać zgłoszeń.");
+    const reports = (result.data||[]).filter(row=>row.type==="bugReports").map(parseAdminBug).sort((a,b)=>b.date.localeCompare(a.date));
+    if (!reports.length) { list.textContent = "Nie ma jeszcze żadnych zgłoszeń."; return; }
+    list.innerHTML = reports.map(report => `<article class="bug-card" data-report-id="${escapeAdminText(report.id)}"><h3>🐞 ${escapeAdminText(report.title)}</h3><p><b>Kategoria:</b> ${escapeAdminText(report.category)} · <b>Autor:</b> ${escapeAdminText(report.user)}${report.role?` (${escapeAdminText(report.role)})`:""}</p><p><b>Data:</b> ${escapeAdminText(report.date?new Date(report.date).toLocaleString("pl-PL"):"Brak daty")}</p><p style="white-space:pre-wrap;overflow-wrap:anywhere">${escapeAdminText(report.description)}</p><p><b>Kontakt:</b> ${report.canContact?"zgoda na kontakt":"bez kontaktu"}</p><div class="admin-actions"><label>Status <select data-bug-status><option value="nowe" ${report.status==="nowe"?"selected":""}>Nowe</option><option value="w trakcie" ${report.status==="w trakcie"?"selected":""}>W trakcie</option><option value="naprawione" ${report.status==="naprawione"?"selected":""}>Naprawione</option><option value="odrzucone" ${report.status==="odrzucone"?"selected":""}>Odrzucone</option></select></label><button type="button" class="admin-action" data-admin-action="status">Zapisz status</button></div><label for="reply-${escapeAdminText(report.id)}">Odpowiedź dla zgłaszającego</label><textarea id="reply-${escapeAdminText(report.id)}" data-bug-reply maxlength="2000" placeholder="Wpisz odpowiedź…">${escapeAdminText(report.reply)}</textarea><button type="button" class="admin-action" data-admin-action="reply">Wyślij odpowiedź</button></article>`).join("");
+  } catch (error) { list.textContent = error.message || "Błąd pobierania zgłoszeń."; }
+}
+document.getElementById("openAdminPanel").addEventListener("click",()=>{document.getElementById("adminPanel").style.display="block";document.getElementById("adminPanel").scrollIntoView({behavior:"smooth"});loadAdminUsers();});
+document.getElementById("closeAdminPanel").addEventListener("click",()=>{document.getElementById("adminPanel").style.display="none";});
+document.querySelectorAll("[data-admin-tab]").forEach(button=>button.addEventListener("click",()=>{document.querySelectorAll("[data-admin-tab]").forEach(tab=>tab.classList.toggle("active",tab===button));document.getElementById("adminUsersPanel").classList.toggle("active",button.dataset.adminTab==="users");document.getElementById("adminBugsPanel").classList.toggle("active",button.dataset.adminTab==="bugs");if(button.dataset.adminTab==="bugs")loadAdminBugs();else loadAdminUsers();}));
+document.getElementById("bugAdminList").addEventListener("click",async event=>{const button=event.target.closest("[data-admin-action]");if(!button)return;const card=button.closest("[data-report-id]");if(!card)return;const status=document.getElementById("bugAdminStatus");button.disabled=true;status.textContent="Zapisuję…";try{const payload={action:"update",type:"bugReports",id:card.dataset.reportId};if(button.dataset.adminAction==="status")payload.status=card.querySelector("[data-bug-status]").value;else payload.reply=card.querySelector("[data-bug-reply]").value.trim();await adminPost(payload);status.textContent=button.dataset.adminAction==="reply"?"Odpowiedź została wysłana.":"Status został zapisany.";await loadAdminBugs();}catch(error){status.textContent=error.message||"Nie udało się zapisać.";}finally{button.disabled=false;}});
 document.getElementById("portalLogout").addEventListener("click", async () => {
   const token = portalAuth?.token || localStorage.getItem("koale_apps_script_token") || sessionStorage.getItem("koale_apps_script_token");
   if (token) { try { await portalJsonp({action:"logout", token}); } catch(e) {} }
   ["koale_remembered_session","koale_apps_script_token","koale_firebase_refresh_token"].forEach(k=>localStorage.removeItem(k));
   ["koale_session","koale_apps_script_token","koale_firebase_refresh_token"].forEach(k=>sessionStorage.removeItem(k));
   portalAuth = null;
-  document.getElementById("accountAdmin").style.display = "none";
+  document.getElementById("adminNav").style.display = "none";
   portalShowLogin();
 });
 (function requireLoginOnEveryDirectVisit() {
