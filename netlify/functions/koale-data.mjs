@@ -193,7 +193,6 @@ async function bootstrap(params, auth, db) {
 }
 async function route(event) {
   const method = event.httpMethod || event.requestContext?.http?.method || "GET";
-  if (method === "OPTIONS") return { statusCode:204, headers:{"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"Content-Type","Access-Control-Allow-Methods":"GET,POST,OPTIONS"}, body:"" };
   const qs = event.queryStringParameters || {};
   let body = {};
   const contentType = event.headers?.["content-type"] || event.headers?.["Content-Type"] || "";
@@ -237,6 +236,7 @@ async function route(event) {
 
 export const handler = async (event) => {
   const method = event.httpMethod || event.requestContext?.http?.method || "GET";
+  if (method === "OPTIONS") return { statusCode:204, headers:{"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"Content-Type","Access-Control-Allow-Methods":"GET,POST,OPTIONS"}, body:"" };
   const params = event.queryStringParameters || {};
   const callback = params.callback;
   let result;

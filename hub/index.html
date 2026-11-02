@@ -73,7 +73,7 @@ document.getElementById('openGames').addEventListener('click',()=>{
   location.href = 'https://koalegry.netlify.app/#koale_auth=' + handoff;
 });
 
-const PORTAL_SHEETS_API = "https://koalezadania.netlify.app/.netlify/functions/koale-data";
+const PORTAL_SHEETS_API = "https://koale.netlify.app/.netlify/functions/koale-data";
 let portalAuth = null;
 function portalJsonp(params) {
   return new Promise((resolve, reject) => {
