@@ -16,6 +16,13 @@ h1{font-size:clamp(38px,7vw,58px);font-weight:800;letter-spacing:-2.5px;margin-b
 h2{font-size:18px;margin-bottom:5px}.desc{font-size:13px;color:var(--muted);line-height:1.5}
 .open{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;margin-top:auto;padding:14px 18px;border-radius:11px;background:var(--accent);color:#101812;text-decoration:none;border:0;font-weight:750;font-size:14px;cursor:pointer}
 .open:hover{background:#a4e2b2}.soon{opacity:.65}.soon .open{background:#292d35;color:#aeb4bf;cursor:default}
+.admin-panel{display:none;margin-top:22px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px}
+.admin-panel h2{margin-bottom:8px}.admin-panel p{color:var(--muted);font-size:13px;margin-bottom:16px}
+.account-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:end}
+.account-form label{display:block;color:#c8cbd1;font-size:13px;margin-bottom:6px}
+.account-form input,.account-form select{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--border);background:#101217;color:var(--text);font:inherit}
+.account-form button{padding:12px 16px;border:0;border-radius:10px;background:var(--accent);color:#101812;font-weight:750;cursor:pointer}
+#accountStatus{min-height:20px;margin-top:12px;font-size:13px;color:var(--muted)}
 footer{padding:22px;text-align:center;color:#656b75;font-size:12px;border-top:1px solid var(--border)}
 @media(max-width:600px){header{padding:18px 6%}main{padding-top:34px}.card{padding:19px}}
 
@@ -57,6 +64,16 @@ footer{padding:22px;text-align:center;color:#656b75;font-size:12px;border-top:1p
 <section class="grid" aria-label="Aplikacje">
 <article class="card"><div class="cardhead"><div class="cardicon">📚</div><div><h2>Koale-Zadania</h2><p class="desc">Zadania, odpowiedzi, czat i plan lekcji.</p></div></div><button class="open" id="openTasks">Otwórz Koale-Zadania <span>→</span></button></article>
 <article class="card"><div class="cardhead"><div class="cardicon">🎮</div><div><h2>Koale Gry</h2><p class="desc">Gry edukacyjne i zręcznościowe w stylu Koale.</p></div></div><button class="open" id="openGames">Otwórz Koale Gry <span>→</span></button></article>
+</section>
+<section class="admin-panel" id="accountAdmin" aria-label="Dodawanie kont">
+  <h2>Dodaj konto</h2><p>Ta opcja jest dostępna tylko dla SuperAdministratora. Hasło musi mieć co najmniej 6 znaków.</p>
+  <form class="account-form" id="accountForm">
+    <div><label for="newAccountName">Nazwa użytkownika</label><input id="newAccountName" required autocomplete="off"></div>
+    <div><label for="newAccountPassword">Hasło</label><input id="newAccountPassword" type="password" minlength="6" required autocomplete="new-password"></div>
+    <div><label for="newAccountClass">Klasa</label><select id="newAccountClass"><option value="4">IV</option><option value="5a">Va</option><option value="5b">Vb</option><option value="6" selected>VI</option><option value="7">VII</option><option value="8">VIII</option></select></div>
+    <div><label for="newAccountRole">Rola</label><select id="newAccountRole"><option value="student">Uczeń</option><option value="nauczyciel">Nauczyciel</option><option value="moderator">Moderator</option><option value="admin">Administrator</option><option value="sadmin">SuperAdministrator</option></select></div>
+    <button id="createAccountButton" type="submit">Utwórz konto</button>
+  </form><div id="accountStatus" role="status"></div>
 </section></main>
 <footer id="footer" style="display:none">© 2026 Koale</footer>
 
@@ -102,6 +119,7 @@ function portalShowHome() {
   document.getElementById("footer").style.display = "block";
   document.getElementById("portalLogout").style.display = "inline-block";
   document.getElementById("topstatus").textContent = "Witaj, " + portalAuth.user.name;
+  document.getElementById("accountAdmin").style.display = portalAuth.user.role === "sadmin" ? "block" : "none";
   history.replaceState(null, "", location.pathname + location.hash);
 }
 function portalShowLogin(message="") {
@@ -141,12 +159,46 @@ document.getElementById("portalLoginForm").addEventListener("submit", async even
     submit.textContent = "Zaloguj się";
   }
 });
+document.getElementById("accountForm").addEventListener("submit", async event => {
+  event.preventDefault();
+  const button = document.getElementById("createAccountButton");
+  const status = document.getElementById("accountStatus");
+  button.disabled = true;
+  status.style.color = "#9298a3";
+  status.textContent = "Tworzę konto…";
+  try {
+    const response = await fetch(PORTAL_SHEETS_API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "createUser",
+        token: portalAuth?.token || "",
+        refreshToken: portalAuth?.refreshToken || "",
+        name: document.getElementById("newAccountName").value.trim(),
+        password: document.getElementById("newAccountPassword").value,
+        class: document.getElementById("newAccountClass").value,
+        role: document.getElementById("newAccountRole").value
+      })
+    });
+    const result = await response.json();
+    if (!response.ok || !result.success) throw new Error(result?.error || "Nie udało się utworzyć konta.");
+    status.style.color = "#a4e2b2";
+    status.textContent = `Utworzono konto: ${result.user.name}, kl. ${result.user.class}.`;
+    document.getElementById("accountForm").reset();
+  } catch (error) {
+    status.style.color = "#ff9292";
+    status.textContent = error.message || "Błąd podczas tworzenia konta.";
+  } finally {
+    button.disabled = false;
+  }
+});
 document.getElementById("portalLogout").addEventListener("click", async () => {
   const token = portalAuth?.token || localStorage.getItem("koale_apps_script_token") || sessionStorage.getItem("koale_apps_script_token");
   if (token) { try { await portalJsonp({action:"logout", token}); } catch(e) {} }
   ["koale_remembered_session","koale_apps_script_token","koale_firebase_refresh_token"].forEach(k=>localStorage.removeItem(k));
   ["koale_session","koale_apps_script_token","koale_firebase_refresh_token"].forEach(k=>sessionStorage.removeItem(k));
   portalAuth = null;
+  document.getElementById("accountAdmin").style.display = "none";
   portalShowLogin();
 });
 (function requireLoginOnEveryDirectVisit() {
