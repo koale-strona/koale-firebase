@@ -101,7 +101,7 @@ document.getElementById('openGames').addEventListener('click',()=>{
   location.href = 'https://koalegry.netlify.app/#koale_auth=' + handoff;
 });
 
-const PORTAL_SHEETS_API = "https://koale.netlify.app/.netlify/functions/koale-data";
+const PORTAL_SHEETS_API = "https://script.google.com/macros/s/AKfycbzDcUrRptgsCjE__4vaiY51H52XQe6WBtZoaxWJPC9Cl7hFB36JWTmDmszDCeiRP8hgrg/exec";
 let portalAuth = null;
 function portalJsonp(params) {
   return new Promise((resolve, reject) => {
@@ -114,6 +114,19 @@ function portalJsonp(params) {
     script.onerror = () => { if (finished) return; finished=true; clearTimeout(timeout); cleanup(); reject(new Error("Nie udało się połączyć z Google Sheets.")); };
     script.src = PORTAL_SHEETS_API + "?" + new URLSearchParams({...params, callback: cb, _: Date.now()}).toString();
     document.head.appendChild(script);
+  });
+}
+function portalPost(payload) {
+  const requestId="koalePortalPost_"+Date.now()+"_"+Math.floor(Math.random()*100000);
+  const body={...payload,requestId};
+  return new Promise((resolve,reject)=>{
+    const iframe=document.createElement("iframe");iframe.name=requestId;iframe.style.display="none";iframe.title="Połączenie z Google Sheets";
+    const form=document.createElement("form");form.method="POST";form.action=PORTAL_SHEETS_API;form.target=requestId;form.style.display="none";
+    const field=document.createElement("input");field.type="hidden";field.name="payload";field.value=JSON.stringify(body);form.appendChild(field);
+    let done=false;const finish=result=>{if(done)return;done=true;window.removeEventListener("message",onMessage);clearTimeout(timer);form.remove();iframe.remove();result?.success?resolve(result):reject(new Error(result?.error||"Nie udało się zapisać w Google Sheets."));};
+    const onMessage=event=>{const m=event.data;if(m&&m.source==="koale-apps-script"&&m.requestId===requestId&&m.result)finish(m.result);};
+    const timer=setTimeout(()=>finish({success:false,error:"Google Sheets nie potwierdził zapisu."}),15000);
+    window.addEventListener("message",onMessage);document.body.append(iframe,form);try{form.submit();}catch(e){finish({success:false,error:e.message||"Błąd wysyłania."});}
   });
 }
 function portalStoreAuth(result) {
@@ -184,21 +197,14 @@ document.getElementById("accountForm").addEventListener("submit", async event =>
   status.style.color = "#9298a3";
   status.textContent = "Tworzę konto…";
   try {
-    const response = await fetch(PORTAL_SHEETS_API, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "createUser",
-        token: portalAuth?.token || "",
-        refreshToken: portalAuth?.refreshToken || "",
-        name: document.getElementById("newAccountName").value.trim(),
-        password: document.getElementById("newAccountPassword").value,
-        class: document.getElementById("newAccountClass").value,
-        role: document.getElementById("newAccountRole").value
-      })
+    const result = await portalPost({
+      action:"createUser", token:portalAuth?.token||"", refreshToken:portalAuth?.refreshToken||"",
+      name:document.getElementById("newAccountName").value.trim(),
+      password:document.getElementById("newAccountPassword").value,
+      class:document.getElementById("newAccountClass").value,
+      role:document.getElementById("newAccountRole").value
     });
-    const result = await response.json();
-    if (!response.ok || !result.success) throw new Error(result?.error || "Nie udało się utworzyć konta.");
+    if (!result.success) throw new Error(result?.error || "Nie udało się utworzyć konta.");
     status.style.color = "#a4e2b2";
     status.textContent = `Utworzono konto: ${result.user.name}, kl. ${result.user.class}.`;
     document.getElementById("accountForm").reset();
@@ -212,9 +218,8 @@ document.getElementById("accountForm").addEventListener("submit", async event =>
 });
 function escapeAdminText(value) { return String(value == null ? "" : value).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch])); }
 async function adminPost(payload) {
-  const response = await fetch(PORTAL_SHEETS_API, {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...payload,token:portalAuth?.token||"",refreshToken:portalAuth?.refreshToken||""})});
-  const result = await response.json();
-  if (!response.ok || !result.success) throw new Error(result?.error || "Nie udało się zapisać zmian.");
+  const result = await portalPost({...payload,token:portalAuth?.token||"",refreshToken:portalAuth?.refreshToken||""});
+  if (!result.success) throw new Error(result?.error || "Nie udało się zapisać zmian.");
   return result;
 }
 async function loadAdminUsers() {

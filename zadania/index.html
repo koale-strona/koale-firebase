@@ -1734,8 +1734,7 @@ onclick="askKoala()"
 
   Hasła NIE są już zapisane w tym pliku HTML.
 */
-const GOOGLE_SHEETS_URL =
-  "https://koale.netlify.app/.netlify/functions/koale-data";
+const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbzDcUrRptgsCjE__4vaiY51H52XQe6WBtZoaxWJPC9Cl7hFB36JWTmDmszDCeiRP8hgrg/exec";
 
 /*
   Endpoint Koala.ai.
@@ -1802,6 +1801,20 @@ function maintenanceJsonp(params, onResult) {
     if (onResult) onResult({success:false,error:"Nie udało się połączyć z serwerem."});
   };
   document.head.appendChild(script);
+}
+function sheetsJsonp(params) { return new Promise(resolve => maintenanceJsonp(params, resolve)); }
+function sheetsPost(payload) {
+  const requestId = "koalePost_" + Date.now() + "_" + Math.floor(Math.random()*100000);
+  const body = { ...payload, requestId };
+  return new Promise(resolve => {
+    const iframe=document.createElement("iframe"); iframe.name=requestId; iframe.style.display="none"; iframe.title="Połączenie z Google Sheets";
+    const form=document.createElement("form"); form.method="POST"; form.action=GOOGLE_SHEETS_URL; form.target=requestId; form.style.display="none";
+    const field=document.createElement("input"); field.type="hidden"; field.name="payload"; field.value=JSON.stringify(body); form.appendChild(field);
+    let done=false; const finish=result=>{if(done)return;done=true;window.removeEventListener("message",onMessage);clearTimeout(timer);form.remove();iframe.remove();resolve(result||{success:false,error:"Brak odpowiedzi Apps Script."});};
+    const onMessage=event=>{const m=event.data;if(m&&m.source==="koale-apps-script"&&m.requestId===requestId&&m.result)finish(m.result);};
+    const timer=setTimeout(()=>finish({success:false,error:"Apps Script nie potwierdził zapisu."}),15000);
+    window.addEventListener("message",onMessage);document.body.append(iframe,form);try{form.submit();}catch(e){finish({success:false,error:e.message||"Nie udało się wysłać danych."});}
+  });
 }
 function renderMaintenanceState(active) {
   const screen = document.getElementById("maintenanceScreen");
@@ -5161,8 +5174,7 @@ async function renderAccounts() {
   try {
     const token = sessionStorage.getItem("koale_apps_script_token") || localStorage.getItem("koale_apps_script_token") || "";
     const refreshToken = sessionStorage.getItem("koale_firebase_refresh_token") || localStorage.getItem("koale_firebase_refresh_token") || "";
-    const response = await fetch(GOOGLE_SHEETS_URL + "?" + new URLSearchParams({action:"adminUsers",token,refreshToken}));
-    const result = await response.json();
+    const result = await sheetsJsonp({action:"adminUsers",token,refreshToken});
     if (!result.success) throw new Error(result.error || "Nie udało się pobrać listy.");
     users = result.users || [];
     list.innerHTML = users.map((user,index) => `<div style="display:grid;grid-template-columns:1.2fr 1fr .8fr auto;gap:8px;align-items:center;padding:9px;border-bottom:1px solid #ffffff18"><b>${escapeHTML(user.name)}</b><select data-role="${index}"><option value="student">Uczeń</option><option value="nauczyciel">Nauczyciel</option><option value="moderator">Moderator</option><option value="admin">Administrator</option><option value="sadmin">SuperAdministrator</option></select><select data-class="${index}"><option value="4">IV</option><option value="5a">Va</option><option value="5b">Vb</option><option value="6">VI</option><option value="7">VII</option><option value="8">VIII</option></select><button class="button" type="button" onclick="saveAccountProfile(${index})">Zapisz</button></div>`).join("") || "Brak kont.";
@@ -5177,8 +5189,7 @@ async function createAccount(event) {
   try {
     const token=sessionStorage.getItem("koale_apps_script_token")||localStorage.getItem("koale_apps_script_token")||"";
     const refreshToken=sessionStorage.getItem("koale_firebase_refresh_token")||localStorage.getItem("koale_firebase_refresh_token")||"";
-    const response=await fetch(GOOGLE_SHEETS_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"createUser",token,refreshToken,name:document.getElementById("accountName").value.trim(),password:document.getElementById("accountPassword").value,role:document.getElementById("accountRole").value,class:document.getElementById("accountClass").value})});
-    const result=await response.json(); if(!result.success)throw new Error(result.error||"Nie udało się utworzyć konta.");
+    const result = await sheetsPost({action:"createUser",token,refreshToken,name:document.getElementById("accountName").value.trim(),password:document.getElementById("accountPassword").value,role:document.getElementById("accountRole").value,class:document.getElementById("accountClass").value}); if(!result.success)throw new Error(result.error||"Nie udało się utworzyć konta.");
     document.getElementById("accountPassword").value=""; status.textContent="Konto utworzone."; await renderAccounts();
   } catch(error) { status.textContent=error.message||"Błąd tworzenia konta."; }
 }
@@ -5190,8 +5201,7 @@ async function saveAccountProfile(index) {
   try {
     const token=sessionStorage.getItem("koale_apps_script_token")||localStorage.getItem("koale_apps_script_token")||"";
     const refreshToken=sessionStorage.getItem("koale_firebase_refresh_token")||localStorage.getItem("koale_firebase_refresh_token")||"";
-    const response=await fetch(GOOGLE_SHEETS_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"updateUserProfile",token,refreshToken,name:user.name,role:roleValue,class:classValue})});
-    const result=await response.json(); if(!result.success)throw new Error(result.error||"Nie udało się zapisać zmian.");
+    const result = await sheetsPost({action:"updateUserProfile",token,refreshToken,name:user.name,role:roleValue,class:classValue}); if(!result.success)throw new Error(result.error||"Nie udało się zapisać zmian.");
     setSync("✅ Zapisano rolę i klasę: "+user.name); await renderAccounts();
   } catch(error) { setSync("⚠️ "+(error.message||"Błąd zapisu."),true); }
 }

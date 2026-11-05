@@ -1,81 +1,25 @@
-KOALE + FIREBASE — INSTRUKCJA
-============================
+KOALE + GOOGLE SHEETS — PACZKA DO PODMIANY
+=========================================
 
-W paczce są trzy strony:
-- hub/index.html — główna strona Koale; to ją wdrażasz na koale.netlify.app.
-- netlify/functions/ — serwer Firebase i Koala AI, wdrażane razem z główną stroną.
-- zadania/index.html — osobna strona zadań, łączy się z funkcjami na koale.netlify.app.
-- games/index.html — osobna strona gier, łączy się z rankingiem na koale.netlify.app.
+Główna strona Koale znajduje się w hub/index.html.
+Koale-Zadania: zadania/index.html. Gry: games/index.html.
+Wszystkie zapisują dane przez istniejący Google Apps Script połączony z arkuszem.
+Funkcje Koala AI pozostają w netlify/functions.
 
-WAŻNE: nie wysyłaj nikomu pliku migration-data.json ani klucza service account.
-Eksport zawiera dotychczasowe hasła. Klucz service account daje dostęp do bazy.
+PODMIANA W GITHUB DESKTOP
+1. Rozpakuj ZIP na komputerze.
+2. Skopiuj zawartość rozpakowanego folderu do folderu sklonowanego repozytorium Koale.
+3. Zastąp istniejące pliki, ale nie usuwaj ukrytego folderu .git.
+4. W GitHub Desktop wpisz opis „Powrót do Google Sheets”, kliknij Commit to main, a potem Push origin.
+5. W Netlify poczekaj, aż wdrożenie zakończy się statusem Published.
 
-1. Przygotuj Firebase
----------------------
-1) W Firebase Console wybierz projekt koale-366a0.
-2) Authentication > Sign-in method > włącz Email/Password.
-3) Firestore Database > utwórz bazę danych. Wybierz europe-central2 (Warszawa), jeśli konsola pozwoli.
-4) W ustawieniach reguł Firestore wklej zawartość firestore.rules i opublikuj.
-   Aplikacja łączy się z bazą przez funkcję serwerową Netlify; reguły blokują
-   bezpośredni dostęp strony do danych.
-5) Google Cloud Console > IAM i administracja > Konta usługi. Utwórz konto
-   usługi dla projektu, nadaj mu dostęp administratora Firebase,
-   wygeneruj klucz JSON i pobierz go na swój komputer. Nie dodawaj klucza
-   do folderu strony ani do GitHuba.
+USTAWIENIA NETLIFY
+W konfiguracji witryny koale.netlify.app ustaw Base directory puste (główny folder repozytorium).
+Publish directory: hub
+Functions directory: netlify/functions
+Zmienne Firebase FIREBASE_PROJECT_ID, FIREBASE_SERVICE_ACCOUNT i FIREBASE_WEB_API_KEY nie są potrzebne tej wersji.
 
-2. Przenieś dane ze starej bazy
--------------------------------
-1) Otwórz lokalny plik migration-export.html w przeglądarce.
-2) Wpisz adres starego Apps Script oraz login/hasło administratora starej strony.
-3) Kliknij „Zaloguj i pobierz eksport”. Zapisze się plik migration-data.json.
-   Przechowuj go prywatnie. Eksport pobiera rekordy i wyniki widoczne w rankingach
-   (top 10 dla każdej gry), ale stary serwer może nie zwracać haseł.
-4) Jeśli import wypisze „brak hasła”, otwórz źródłowy arkusz Google, kliknij
-   zakładkę Użytkownicy, a potem Plik > Pobierz > Wartości rozdzielane
-   przecinkami (.csv). Zapisz jako koale-uzytkownicy.csv w folderze Pobrane.
-   Ten CSV zawiera hasła — nie udostępniaj go.
-4) Zainstaluj Node.js na komputerze, otwórz PowerShell w głównym folderze
-   rozpakowanej paczki i wpisz:
+Domena Apps Script użyta przez stronę jest zapisana w plikach HTML. Skrypt musi być wdrożony jako aplikacja internetowa i dostępny dla użytkowników strony.
 
-   npm install
-   $env:GOOGLE_APPLICATION_CREDENTIALS="C:\pełna\ścieżka\service-account.json"
-   node scripts/import-from-export.mjs "C:\pełna\ścieżka\migration-data.json"
-
-   Jeśli używasz dodatkowego CSV z zakładki Użytkownicy, dodaj jego ścieżkę
-   jako drugi argument po migration-data.json.
-
-5) Na końcu zobaczysz liczbę przeniesionych kont i rekordów. Jeśli skrypt
-   zgłosi hasło krótsze niż 6 znaków, trzeba ustawić temu kontu nowe hasło;
-   Firebase nie przyjmuje krótszych haseł.
-
-3. Opublikuj strony w Netlify
------------------------------
-Najprościej połącz repozytorium GitHub z Netlify, aby Netlify zbudował funkcje.
-
-A) Główna strona Koale i funkcje:
-   podłącz główne repozytorium do istniejącej witryny koale.netlify.app.
-   netlify.toml ustawia publikację folderu hub i funkcji z netlify/functions.
-   W Netlify > Site configuration > Environment variables dodaj:
-   FIREBASE_PROJECT_ID = koale-366a0
-   FIREBASE_SERVICE_ACCOUNT = cała zawartość pobranego pliku JSON service account
-   FIREBASE_WEB_API_KEY = klucz apiKey z konfiguracji Firebase
-   Zapisz zmienne i uruchom nowy deploy.
-
-B) Koale-Zadania:
-   opublikuj statyczny folder zadania na istniejącej witrynie koalezadania.netlify.app.
-
-C) Gry:
-   opublikuj statyczny folder games na istniejącej witrynie koalegry.netlify.app.
-
-4. Dodawanie kont
------------------
-Po wdrożeniu zaloguj się na konto o roli sadmin. W menu pojawi się „Konta”.
-Tam można dodawać uczniów, nauczycieli i administratorów oraz ustawiać role
-i klasy. Nowe hasło musi mieć co najmniej 6 znaków.
-
-Jeśli stare konta mają inną rolę niż sadmin, zmień rolę wybranego konta w
-Firebase Console w kolekcji users albo poproś obecnego administratora aplikacji,
-aby nadał ją w panelu kont.
-
-Pliki netlify/functions/koala.mjs i koala-engine.mjs obsługują Koala AI.
-Nie potrzebują klucza zewnętrznego modelu.
+PANEL ADMINA
+Po zalogowaniu na konto sadmin można otworzyć Panel Admina, dodawać konta, ustawiać klasy i role oraz przeglądać i odpowiadać na zgłoszenia błędów. Dostępność tych akcji zależy od tego, czy wdrożony Apps Script obsługuje odpowiednie operacje.

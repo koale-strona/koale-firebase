@@ -1,8 +1,5 @@
 {
-  "name": "koale-firebase",
+  "name": "koale-google-sheets",
   "private": true,
-  "type": "module",
-  "dependencies": {
-    "firebase-admin": "^13.5.0"
-  }
+  "type": "module"
 }
