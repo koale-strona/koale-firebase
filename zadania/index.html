@@ -905,7 +905,7 @@ footer {
 html.auth-pending #authTransition{display:flex!important}
 html.auth-pending body>*:not(#authTransition){visibility:hidden!important}
 </style>
-<script>try{if(new URLSearchParams(location.hash.slice(1)).has("koale_auth"))document.documentElement.classList.add("auth-pending")}catch(e){}</script>
+<script>try{if(new URLSearchParams(location.hash.slice(1)).has("koale_auth")){document.documentElement.classList.add("auth-pending");window.__koaleAuthWatchdog=setTimeout(function(){document.documentElement.classList.remove("auth-pending");var login=document.getElementById("loginScreen"),status=document.getElementById("loginStatus");if(login)login.classList.remove("hidden");if(status)status.textContent="Nie udało się potwierdzić logowania z portalu. Wróć do Koale i spróbuj ponownie."},20000)}}catch(e){}</script>
 </head>
 
 <body>
@@ -5152,6 +5152,7 @@ function renderAll() {
    ========================================================= */
 
 function finishPortalHandoff(success) {
+  if (window.__koaleAuthWatchdog) { clearTimeout(window.__koaleAuthWatchdog); window.__koaleAuthWatchdog = null; }
   const root = document.documentElement;
   if (!root.classList.contains("auth-pending")) return;
   const spinner = document.getElementById("authSpinner");
@@ -5251,20 +5252,6 @@ function start() {
     setSync("⏳ Sprawdzam sesję z portalu...");
     await syncFromSheets(savedToken);
     if (usersLoaded) restored = restoreRememberedSession();
-    if (restored) {
-      await syncFromSheets(savedToken);
-      if (!usersLoaded) {
-        restored = false;
-        role = "guest";
-        currentUser = null;
-        sessionStorage.removeItem("koale_session");
-        sessionStorage.removeItem("koale_apps_script_token");
-  sessionStorage.removeItem("koale_firebase_refresh_token");
-        localStorage.removeItem("koale_remembered_session");
-        localStorage.removeItem("koale_apps_script_token");
-  localStorage.removeItem("koale_firebase_refresh_token");
-      }
-    }
   }
 
   renderAll();
@@ -5277,7 +5264,7 @@ function start() {
 
   loginScreen?.classList.remove("hidden");
   updateAccess();
-  setStatus("loginStatus", "Sesja portalu wygasła. Zaloguj się tutaj ponownie.", true);
+  setStatus("loginStatus", usersLoaded ? "Sesja portalu wygasła. Zaloguj się tutaj ponownie." : "Nie udało się potwierdzić sesji w Google Sheets. Zaloguj się ponownie lub wróć do huba.", true);
   finishPortalHandoff(false);
   startChatRefresh();
 }
